@@ -36,7 +36,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build ESN Geyser Spigot
-        run: ./gradlew :bootstrap:spigot:build --stacktrace
+        run: ./gradlew build --stacktrace
         env:
           BUILD_NUMBER: "ESN-${{ github.run_number }}"
 
