@@ -1,124 +1,54 @@
-name: Build
+name: ESN Geyser Build
 
 on:
   workflow_dispatch:
   push:
-    branches-ignore:
-      - 'gh-readonly-queue/**'
+    branches: [ "master" ]
     paths-ignore:
-      - '.github/ISSUE_TEMPLATE/*.yml'
-      - '.github/workflows/build-remote.yml'
-      - '.github/workflows/preview.yml'
-      - '.github/workflows/pull-request.yml'
-      - '.idea/copyright/*.xml'
-      - '.gitignore'
-      - 'CONTRIBUTING.md'
-      - 'LICENSE'
-      - 'Jenkinsfile '
-      - 'README.md'
+      - "**/*.md"
+
+permissions:
+  contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: esn-geyser-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  build-spigot:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - name: Get Release Info
-        id: release-info
-        uses: GeyserMC/actions/previous-release@master
+      - name: Checkout ESN-Geyser
+        uses: actions/checkout@v4
         with:
-          appID: ${{ secrets.RELEASE_APP_ID }}
-          appPrivateKey: ${{ secrets.RELEASE_APP_PK }}
+          submodules: recursive
+          fetch-depth: 0
 
-      - name: Setup Gradle
-        uses: GeyserMC/actions/setup-gradle-composite@master
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
         with:
-          setup-java_java-version: 25
+          distribution: temurin
+          java-version: "25"
+          cache: gradle
 
-      - name: Build Geyser
-        run: ./gradlew build
+      - name: Make Gradle executable
+        run: chmod +x gradlew
+
+      - name: Build ESN Geyser Spigot
+        run: ./gradlew :bootstrap:spigot:build --stacktrace
         env:
-          BUILD_NUMBER: ${{ steps.release-info.outputs.curentRelease }}
-          
-      - name: Archive Artifacts
-        uses: GeyserMC/actions/upload-multi-artifact@master
-        if: success()
-        with:
-          artifacts: |
-            bootstrap/mod/fabric/build/libs/Geyser-Fabric.jar
-            bootstrap/mod/neoforge/build/libs/Geyser-NeoForge.jar
-            bootstrap/standalone/build/libs/Geyser-Standalone.jar
-            bootstrap/spigot/build/libs/Geyser-Spigot.jar
-            bootstrap/bungeecord/build/libs/Geyser-BungeeCord.jar
-            bootstrap/velocity/build/libs/Geyser-Velocity.jar
-            bootstrap/viaproxy/build/libs/Geyser-ViaProxy.jar
+          BUILD_NUMBER: "ESN-${{ github.run_number }}"
 
-      - name: Publish to Maven Repository
-        if: ${{ success() && github.repository == 'GeyserMC/Geyser' && (github.ref_name == 'master' || startsWith(github.ref_name, 'api/') || startsWith(github.ref_name, 'feature/')) }}
-        run: ./gradlew publish
-        env:
-          BUILD_NUMBER: ${{ steps.release-info.outputs.curentRelease }}
-          ORG_GRADLE_PROJECT_geysermcUsername: ${{ vars.DEPLOY_USER }}
-          ORG_GRADLE_PROJECT_geysermcPassword: ${{ secrets.DEPLOY_PASS }}
-        
-      - name: Get Version
-        if: ${{ (success() || failure()) && github.repository == 'GeyserMC/Geyser' }}
-        id: get-version
+      - name: Verify Spigot JAR exists
         run: |
-          version=$(cat gradle.properties | grep -o "version=[0-9\\.]*" | cut -d"=" -f2)
-          echo "VERSION=${version}" >> $GITHUB_OUTPUT
+          test -f bootstrap/spigot/build/libs/Geyser-Spigot.jar
+          ls -lh bootstrap/spigot/build/libs/Geyser-Spigot.jar
 
-      - name: Get Release Metadata
-        if: ${{ (success() || failure()) && github.repository == 'GeyserMC/Geyser' }}
-        uses: GeyserMC/actions/release@master
-        id: metadata
+      - name: Upload DaTHost-ready JAR
+        uses: actions/upload-artifact@v4
         with:
-          appID: ${{ secrets.RELEASE_APP_ID }}
-          appPrivateKey: ${{ secrets.RELEASE_APP_PK }}
-          files: |
-            bungeecord:bootstrap/bungeecord/build/libs/Geyser-BungeeCord.jar
-            fabric:bootstrap/mod/fabric/build/libs/Geyser-Fabric.jar
-            neoforge:bootstrap/mod/neoforge/build/libs/Geyser-NeoForge.jar
-            spigot:bootstrap/spigot/build/libs/Geyser-Spigot.jar
-            standalone:bootstrap/standalone/build/libs/Geyser-Standalone.jar
-            velocity:bootstrap/velocity/build/libs/Geyser-Velocity.jar
-            viaproxy:bootstrap/viaproxy/build/libs/Geyser-ViaProxy.jar
-          releaseEnabled: false
-          saveMetadata: true
-          releaseProject: 'geyser'
-          releaseVersion: ${{ steps.get-version.outputs.VERSION }}
-
-      - name: Publish to Downloads API
-        if: ${{ success() && github.repository == 'GeyserMC/Geyser' && github.ref_name == 'master' }}
-        uses: GeyserMC/actions/upload-release@master
-        with:
-          username: ${{ vars.DOWNLOADS_USERNAME }}
-          privateKey: ${{ secrets.DOWNLOADS_PRIVATE_KEY }}
-          host: ${{ secrets.DOWNLOADS_SERVER_IP }}
-          files: |
-            bootstrap/bungeecord/build/libs/Geyser-BungeeCord.jar
-            bootstrap/mod/fabric/build/libs/Geyser-Fabric.jar
-            bootstrap/mod/neoforge/build/libs/Geyser-NeoForge.jar
-            bootstrap/spigot/build/libs/Geyser-Spigot.jar
-            bootstrap/standalone/build/libs/Geyser-Standalone.jar
-            bootstrap/velocity/build/libs/Geyser-Velocity.jar
-            bootstrap/viaproxy/build/libs/Geyser-ViaProxy.jar
-          changelog: ${{ steps.metadata.outputs.body }}
-
-      - name: Publish to Modrinth
-        if: ${{ success() && github.repository == 'GeyserMC/Geyser' && github.ref_name == 'master' }}
-        env:
-          CHANGELOG: ${{ steps.metadata.outputs.body }}
-          BUILD_NUMBER: ${{ steps.release-info.outputs.curentRelease }}
-          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
-        run: ./gradlew modrinth
-
-      - name: Notify Discord
-        if: ${{ (success() || failure()) && github.repository == 'GeyserMC/Geyser' }}
-        uses: GeyserMC/actions/notify-discord@master
-        with:
-          discordWebhook: ${{ secrets.DISCORD_WEBHOOK }}
-          status: ${{ job.status }}
-          body: ${{ steps.metadata.outputs.body }}
-          includeDownloads: ${{ github.ref_name == 'master' }}
+          name: ESN-Geyser-Spigot
+          path: bootstrap/spigot/build/libs/Geyser-Spigot.jar
+          if-no-files-found: error
+          retention-days: 30
