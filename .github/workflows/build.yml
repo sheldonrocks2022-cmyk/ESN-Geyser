@@ -40,15 +40,16 @@ jobs:
         env:
           BUILD_NUMBER: "${{ github.run_number }}"
 
-      - name: Verify Spigot JAR exists
+      - name: Rename ESN Geyser JAR
         run: |
           test -f bootstrap/spigot/build/libs/Geyser-Spigot.jar
-          ls -lh bootstrap/spigot/build/libs/Geyser-Spigot.jar
+          cp bootstrap/spigot/build/libs/Geyser-Spigot.jar "bootstrap/spigot/build/libs/ESN GEYSER.jar"
+          ls -lh "bootstrap/spigot/build/libs/ESN GEYSER.jar"
 
       - name: Upload DaTHost-ready JAR
         uses: actions/upload-artifact@v4
         with:
-          name: ESN-Geyser-Spigot
-          path: bootstrap/spigot/build/libs/Geyser-Spigot.jar
+          name: ESN-GEYSER
+          path: "bootstrap/spigot/build/libs/ESN GEYSER.jar"
           if-no-files-found: error
           retention-days: 30
