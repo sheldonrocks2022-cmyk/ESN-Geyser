@@ -23,3 +23,12 @@ Protocol/network changes should stay as small as possible so upstream fixes can 
 ## Important
 
 26.52 uses the existing protocol 2193 codec in this ESN build. This compatibility patch does not invent or emulate a different protocol number.
+
+
+## Verified build
+
+- Version: `2.11.3-ESN.1`
+- Successful GitHub Actions run: `36708471107`
+- Artifact: `Geyser-Spigot.jar`
+- SHA-256: `b9101ced0e19b7bba8ebaf985deb5f16f104f9bca311febc94fd1f6af63eec29`
+- Compiled protocol table verified to include Bedrock `26.52` on the `Bedrock_v2193` codec.
