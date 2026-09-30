@@ -1,0 +1,35 @@
+name: Sync Geyser Upstream
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 9 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ESN-Geyser
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Configure Git
+        run: |
+          git config user.name "ESN Upstream Sync"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Fetch official Geyser
+        run: |
+          git remote add upstream https://github.com/GeyserMC/Geyser.git || true
+          git fetch upstream master
+
+      - name: Merge upstream safely
+        run: git merge --no-edit upstream/master
+
+      - name: Push synchronized fork
+        run: git push origin master
