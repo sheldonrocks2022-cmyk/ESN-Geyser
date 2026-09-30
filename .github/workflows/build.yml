@@ -1,4 +1,4 @@
-name: ESN Geyser Build
+name: ESN Geyser Network Build
 
 on:
   workflow_dispatch:
@@ -15,9 +15,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-spigot:
+  build-network:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
+
     steps:
       - name: Checkout ESN-Geyser
         uses: actions/checkout@v4
@@ -35,21 +36,59 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x gradlew
 
-      - name: Build ESN Geyser Spigot
-        run: ./gradlew :spigot:build --stacktrace
+      - name: Build ESN Geyser for Paper and Velocity
+        run: ./gradlew :spigot:build :velocity:build --stacktrace
         env:
           BUILD_NUMBER: "${{ github.run_number }}"
 
-      - name: Rename ESN Geyser JAR
+      - name: Validate built platform JARs
+        shell: bash
         run: |
-          test -f bootstrap/spigot/build/libs/Geyser-Spigot.jar
-          cp bootstrap/spigot/build/libs/Geyser-Spigot.jar "bootstrap/spigot/build/libs/ESN GEYSER.jar"
-          ls -lh "bootstrap/spigot/build/libs/ESN GEYSER.jar"
+          set -euo pipefail
 
-      - name: Upload DaTHost-ready JAR
+          SPIGOT_JAR="bootstrap/spigot/build/libs/Geyser-Spigot.jar"
+          VELOCITY_JAR="bootstrap/velocity/build/libs/Geyser-Velocity.jar"
+
+          test -s "$SPIGOT_JAR"
+          test -s "$VELOCITY_JAR"
+
+          jar tf "$SPIGOT_JAR" > /tmp/esn-spigot-jar.txt
+          jar tf "$VELOCITY_JAR" > /tmp/esn-velocity-jar.txt
+
+          grep -q "org/geysermc/geyser/platform/spigot/GeyserSpigotMain.class" /tmp/esn-spigot-jar.txt
+          grep -q "org/geysermc/geyser/platform/velocity/GeyserVelocityMain.class" /tmp/esn-velocity-jar.txt
+
+          cp "$SPIGOT_JAR" "bootstrap/spigot/build/libs/ESN GEYSER.jar"
+          cp "$VELOCITY_JAR" "bootstrap/velocity/build/libs/ESN GEYSER VELOCITY.jar"
+
+          test -s "bootstrap/spigot/build/libs/ESN GEYSER.jar"
+          test -s "bootstrap/velocity/build/libs/ESN GEYSER VELOCITY.jar"
+
+          ls -lh "bootstrap/spigot/build/libs/ESN GEYSER.jar"
+          ls -lh "bootstrap/velocity/build/libs/ESN GEYSER VELOCITY.jar"
+
+      - name: Upload Paper / Spigot JAR
         uses: actions/upload-artifact@v4
         with:
           name: ESN-GEYSER
           path: "bootstrap/spigot/build/libs/ESN GEYSER.jar"
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Velocity JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: ESN-GEYSER-VELOCITY
+          path: "bootstrap/velocity/build/libs/ESN GEYSER VELOCITY.jar"
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload complete ESN network bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: ESN-GEYSER-NETWORK
+          path: |
+            bootstrap/spigot/build/libs/ESN GEYSER.jar
+            bootstrap/velocity/build/libs/ESN GEYSER VELOCITY.jar
           if-no-files-found: error
           retention-days: 30
