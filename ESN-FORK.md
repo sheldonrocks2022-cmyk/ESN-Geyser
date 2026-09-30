@@ -7,7 +7,7 @@ ESN-Geyser is an ES Network-maintained fork of [GeyserMC/Geyser](https://github.
 - Java server target: Paper/Spigot 26.2
 - Bedrock target: 26.30 through 26.52
 - Bedrock 26.52 is accepted on protocol 2193
-- Primary artifact: `Geyser-Spigot.jar`
+- Primary artifact: `ESN GEYSER.jar`
 - Intended host: DaTHost / ESN SMP
 
 ## Build
@@ -32,3 +32,12 @@ Protocol/network changes should stay as small as possible so upstream fixes can 
 - Artifact: `Geyser-Spigot.jar`
 - SHA-256: `b9101ced0e19b7bba8ebaf985deb5f16f104f9bca311febc94fd1f6af63eec29`
 - Compiled protocol table verified to include Bedrock `26.52` on the `Bedrock_v2193` codec.
+
+
+## ESN production connection
+
+Verified on the live DaTHost server:
+
+- Java: `esn.ggwp.cc:17769`
+- Bedrock / Xbox: `esn.ggwp.cc:17429`
+- Geyser external connection test for the Bedrock listener passed on UDP port `17429`.
