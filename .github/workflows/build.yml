@@ -67,28 +67,14 @@ jobs:
           ls -lh "bootstrap/spigot/build/libs/ESN GEYSER.jar"
           ls -lh "bootstrap/velocity/build/libs/ESN GEYSER VELOCITY.jar"
 
-      - name: Upload Paper / Spigot JAR
-        uses: actions/upload-artifact@v4
-        with:
-          name: ESN-GEYSER
-          path: "bootstrap/spigot/build/libs/ESN GEYSER.jar"
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Upload Velocity JAR
-        uses: actions/upload-artifact@v4
-        with:
-          name: ESN-GEYSER-VELOCITY
-          path: "bootstrap/velocity/build/libs/ESN GEYSER VELOCITY.jar"
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Upload complete ESN network bundle
+      # Store one network bundle instead of three overlapping copies.
+      - name: Upload ESN network JARs
         uses: actions/upload-artifact@v4
         with:
           name: ESN-GEYSER-NETWORK
           path: |
             bootstrap/spigot/build/libs/ESN GEYSER.jar
             bootstrap/velocity/build/libs/ESN GEYSER VELOCITY.jar
+          compression-level: 9
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 7
